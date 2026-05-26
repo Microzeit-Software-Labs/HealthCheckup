@@ -1,0 +1,164 @@
+# REQUIRES: Docker Compose v2 (the "docker compose" plugin, NOT legacy "docker-compose" v1).
+#   Install:  sudo apt install docker-compose-plugin      (Ubuntu 20.04+, Docker official repo)
+#             sudo apt install docker.io docker-compose-plugin  (Ubuntu 18.04 via Docker repo)
+#   Verify:   docker compose version   (must show v2.x.x)
+#
+# docker-compose v1 (Python-based) is NOT supported — it cannot parse the "name:" field,
+# does not support "condition: service_healthy" outside Swarm, and ignores deploy.resources.
+#
+# Project name isolates all auto-generated Docker resources (networks, volumes)
+# under the "hc" namespace — no collision with FindFace "oe" project.
+# Run: docker compose -p hc up -d
+#
+# Port mapping rationale (avoids FindFace/NtechLab default ports):
+#   8077  — API          (FindFace uses 80, 8080; avoids 8000 used by oe-backend_api)
+#   5577  — Flower       (avoids 5555 used by some oe-* monitoring services)
+#   Redis — NO host bind (oe-redis-1 already owns 6379; internal-only is sufficient)
+
+name: hc
+
+services:
+
+  api:
+    build: .
+    container_name: hc-api
+    runtime: runc
+    ports:
+      - "127.0.0.1:8077:8000"   # loopback-only; put nginx in front for production
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hc_net
+    volumes:
+      - hc_ssh_keys:/root/.ssh:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  ssh_worker:
+    build: .
+    container_name: hc-ssh-worker
+    runtime: runc
+    command: >
+      celery -A celery_app worker
+      --queues=ssh_queue
+      --concurrency=4
+      --loglevel=info
+      --hostname=ssh-worker@%h
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hc_net
+    volumes:
+      - hc_ssh_keys:/root/.ssh:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  api_worker:
+    build: .
+    container_name: hc-api-worker
+    runtime: runc
+    command: >
+      celery -A celery_app worker
+      --queues=api_queue
+      --concurrency=8
+      --loglevel=info
+      --hostname=api-worker@%h
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hc_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  redis:
+    image: redis:7-alpine
+    container_name: hc-redis
+    runtime: runc
+    # No host port binding — oe-redis-1 already owns 6379 on this host.
+    # All hc-* services reach Redis by service name "redis" inside hc_net.
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save ""
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - hc_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  flower:
+    image: mher/flower:2.0
+    container_name: hc-flower
+    runtime: runc
+    command: celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "127.0.0.1:5577:5555"   # loopback-only
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - hc_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  hc_net:
+    name: hc_net        # explicit name prevents "hc_hc_net" double-prefix
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-hc   # identifiable in `ip link`
+
+volumes:
+  hc_ssh_keys:
+    name: hc_ssh_keys   # explicit name; generic "ssh_keys" collides with other stacks

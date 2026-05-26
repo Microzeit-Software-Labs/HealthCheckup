@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Health Monitor</title>
+    <meta name="description" content="Infrastructure health check dashboard" />
+    <!--
+      Anti-flicker: applies saved theme class to <html> before React
+      mounts, preventing a flash of the wrong theme on load.
+    -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('hc-theme') || 'dark';
+          if (t === 'dark') document.documentElement.classList.add('dark');
+        } catch (_) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-BwmlKqmA.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-DRjVudS_.js">
+    <link rel="modulepreload" crossorigin href="/assets/query-DFUKMA5a.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BL42qkzP.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+    Root type scale. Everything inherits from here.
+    Matches the compressed fontSize config in tailwind.config.js.
+  */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Consistent scrollbars in dark mode */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+
+  /*
+    Smooth theme switching — applied by ThemeProvider only for the 200ms
+    of the toggle animation, then removed. Using !important so it wins
+    over any component-level transition declarations.
+  */
+  .theme-switching,
+  .theme-switching * {
+    transition:
+      background-color 200ms ease,
+      color            200ms ease,
+      border-color     200ms ease,
+      fill             200ms ease,
+      stroke           200ms ease !important;
+  }
+
+  /* Thin scrollbars throughout */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.300') transparent;
+  }
+  .dark * {
+    scrollbar-color: theme('colors.slate.700') transparent;
+  }
+  *::-webkit-scrollbar       { width: 5px; height: 5px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300 dark:bg-slate-700;
+  }
+}
+
+@layer components {
+  /* ── Card surface ─────────────────────────────────────────────── */
+  .card {
+    @apply bg-white dark:bg-slate-800
+           border border-slate-200 dark:border-slate-700
+           rounded-lg shadow-card;
+  }
+
+  /* ── Button variants ──────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center gap-1.5
+           px-3 py-1.5 rounded-md text-xs font-medium
+           transition-colors duration-100 disabled:opacity-50;
+  }
+  .btn-default {
+    @apply btn
+           bg-white dark:bg-slate-800
+           border border-slate-200 dark:border-slate-700
+           text-slate-600 dark:text-slate-300
+           hover:bg-slate-50 dark:hover:bg-slate-700;
+  }
+  .btn-primary {
+    @apply btn
+           bg-blue-600 hover:bg-blue-700
+           text-white border-transparent;
+  }
+  .btn-ghost {
+    @apply btn
+           text-slate-500 dark:text-slate-400
+           hover:bg-slate-100 dark:hover:bg-slate-800
+           border-transparent;
+  }
+  .btn-danger {
+    @apply btn
+           text-red-600 dark:text-red-400
+           hover:bg-red-50 dark:hover:bg-red-900/20
+           border-transparent;
+  }
+
+  /* ── Form inputs ──────────────────────────────────────────────── */
+  .input {
+    @apply w-full px-3 py-1.5 text-sm rounded-md
+           border border-slate-200 dark:border-slate-600
+           bg-white dark:bg-slate-700/50
+           text-slate-900 dark:text-slate-100
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
+           focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500
+           dark:focus:border-blue-500
+           transition-colors;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1;
+  }
+
+  /* ── Page header ─────────────────────────────────────────────── */
+  .page-title {
+    @apply text-sm font-semibold text-slate-900 dark:text-slate-100;
+  }
+  .page-subtitle {
+    @apply text-xs text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  /* ── Section label ───────────────────────────────────────────── */
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-wider
+           text-slate-400 dark:text-slate-500;
+  }
+
+  /* ── Mono / log text ─────────────────────────────────────────── */
+  .log-line {
+    @apply text-xs font-mono leading-relaxed
+           text-slate-600 dark:text-slate-300;
+  }
+}
+
+@layer utilities {
+  /* Shimmer skeleton — used by Skeleton.jsx */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      theme('colors.slate.200') 25%,
+      theme('colors.slate.100') 50%,
+      theme('colors.slate.200') 75%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+  .dark .shimmer {
+    background: linear-gradient(
+      90deg,
+      theme('colors.slate.700') 25%,
+      theme('colors.slate.600') 50%,
+      theme('colors.slate.700') 75%
+    );
+    background-size: 200% 100%;
+  }
+}
